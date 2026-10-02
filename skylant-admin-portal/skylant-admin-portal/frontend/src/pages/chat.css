@@ -1,0 +1,21 @@
+.chat-page .chat-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 520px; overflow: hidden; }
+.chat-people { border-right: 1px solid #e5eaf1; padding: 16px; background: #fbfcfe; }
+.chat-person { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; cursor: pointer; color: #172b4d; }
+.chat-person.active, .chat-person:hover { background: #e8f0ff; }
+.chat-person > span:nth-child(2) { min-width: 0; flex: 1; }
+.chat-person strong, .chat-person small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-person small { margin-top: 3px; color: #64748b; font-size: 12px; }
+.chat-person b { min-width: 21px; padding: 3px 6px; border-radius: 12px; background: #2563eb; color: #fff; text-align: center; font-size: 11px; }
+.chat-window { display: flex; min-width: 0; flex-direction: column; background: #fff; }
+.chat-window-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #e5eaf1; }
+.chat-window-head strong, .chat-window-head span { display: block; }
+.chat-window-head span { margin-top: 3px; color: #64748b; font-size: 12px; }
+.messages { display: flex; flex: 1; min-height: 350px; flex-direction: column; gap: 10px; padding: 20px; overflow-y: auto; background: #f8fafc; }
+.chat-message { max-width: min(75%, 520px); padding: 10px 13px; border-radius: 8px; }
+.chat-message p { margin: 0; white-space: pre-wrap; }
+.chat-message small { display: block; margin-top: 5px; color: #64748b; font-size: 11px; }
+.chat-message.incoming { align-self: flex-start; background: #fff; border: 1px solid #e5eaf1; }
+.chat-message.outgoing { align-self: flex-end; background: #e8f0ff; }
+.chat-composer { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #e5eaf1; }
+.chat-composer input { flex: 1; min-width: 0; border: 1px solid #dbe2ec; border-radius: 6px; padding: 10px 12px; font: inherit; }
+@media (max-width: 700px) { .chat-page .chat-layout { grid-template-columns: 1fr; } .chat-people { max-height: 220px; overflow-y: auto; border-right: 0; border-bottom: 1px solid #e5eaf1; } }

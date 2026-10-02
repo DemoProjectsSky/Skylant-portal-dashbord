@@ -1,0 +1,58 @@
+.daily-reports-page .heading-actions { display: flex; gap: 10px; }
+.daily-report-summary { display: flex; gap: 12px; margin: 20px 0; }
+.daily-report-summary > * { border: 1px solid #e5eaf1; background: #fff; padding: 14px 20px; min-width: 150px; text-align: left; border-radius: 8px; }
+.daily-report-summary button { cursor: pointer; color: inherit; font: inherit; }
+.daily-report-summary strong { display: block; font-size: 22px; color: #173b7a; }
+.daily-report-summary span { color: #64748b; font-size: 13px; }
+.report-summary-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.report-summary-actions > * { min-width: 130px; padding: 12px 16px; border: 1px solid #e5eaf1; border-radius: 6px; background: #fff; text-align: left; }
+.report-summary-actions button { cursor: pointer; font: inherit; color: inherit; }
+.report-summary-actions strong { display: block; color: #173b7a; font-size: 21px; }
+.report-summary-actions span { display: block; margin-top: 3px; color: #64748b; font-size: 12px; }
+.daily-reports-page .module-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.daily-reports-page .module-toolbar select, .daily-reports-page .module-toolbar input[type="date"] { height: 40px; border: 1px solid #dbe2ec; border-radius: 6px; padding: 0 10px; color: #334155; background: #fff; }
+.daily-report-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; margin: 14px 0; background: #fff1f2; color: #b42318; border: 1px solid #fecdd3; border-radius: 6px; }
+.daily-report-error button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: inherit; cursor: pointer; font-weight: 600; }
+.settings-success { padding: 12px 14px; margin: 14px 0; border: 1px solid #bbebcc; border-radius: 6px; background: #effbf3; color: #18733a; }
+.shared-imports-panel { margin-bottom: 18px; }
+.follow-up-lead-modal { max-height: calc(100vh - 32px); overflow-y: auto; }
+.follow-up-note-form { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5eaf1; }
+.follow-up-note-form h4, .follow-up-history h4 { margin: 0 0 12px; color: #172b4d; font-size: 14px; }
+.follow-up-note-form label { display: grid; gap: 6px; margin: 12px 0; color: #334155; font-size: 13px; font-weight: 600; }
+.follow-up-note-form textarea, .follow-up-note-form select, .follow-up-note-form input { width: 100%; border: 1px solid #dbe2ec; border-radius: 6px; padding: 10px; color: #334155; background: #fff; font: inherit; font-weight: 400; }
+.follow-up-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.follow-up-history { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5eaf1; }
+.follow-up-history article { padding: 12px 0; border-top: 1px solid #eef2f7; }
+.follow-up-history article > div { display: flex; justify-content: space-between; gap: 12px; }
+.follow-up-history article strong { color: #172b4d; font-size: 13px; }
+.follow-up-history time, .follow-up-history small, .follow-up-history > p { color: #64748b; font-size: 12px; }
+.follow-up-history article p { margin: 7px 0; color: #334155; white-space: pre-wrap; overflow-wrap: anywhere; }
+.follow-up-notes-cell { min-width: 220px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; }
+.transfer-list { margin-top: 24px; }
+.transfer-list h3 { margin: 0 0 10px; color: #172b4d; font-size: 14px; }
+.transfer-list > p { color: #64748b; font-size: 12px; }
+.transfer-list ul { list-style: none; margin: 0; padding: 0; }
+.transfer-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 12px 0; border-top: 1px solid #eef2f7; }
+.transfer-list li > strong { overflow-wrap: anywhere; color: #172b4d; font-size: 13px; }
+.transfer-list li > span, .transfer-list li > small { color: #64748b; font-size: 11px; }
+.transfer-list li > small { grid-column: 1; }
+.shared-file-actions { grid-column: 2; grid-row: 1 / span 3; display: flex; align-items: center; gap: 8px; }
+.shared-import-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.shared-import-list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid #eef2f7; }
+.shared-import-list strong, .shared-import-list span { display: block; }
+.shared-import-list strong { color: #172b4d; font-size: 13px; }
+.shared-import-list span, .shared-import-empty { margin: 4px 0 0; color: #64748b; font-size: 12px; }
+.shared-import-list .secondary-button { flex: none; }
+.daily-reports-page .cell-sub { display: block; margin-top: 3px; color: #64748b; font-size: 12px; }
+.daily-report-modal { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 18px 50px rgba(15, 23, 42, .2); }
+.daily-report-modal > label { display: grid; gap: 6px; margin: 14px 0; color: #334155; font-size: 13px; font-weight: 600; }
+.daily-report-modal input, .daily-report-modal textarea { border: 1px solid #dbe2ec; border-radius: 6px; padding: 10px; font: inherit; font-weight: 400; }
+.daily-report-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.daily-report-form-grid label { display: grid; gap: 6px; color: #334155; font-size: 13px; font-weight: 600; }
+.daily-report-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.daily-report-detail-grid div { padding: 12px; background: #f8fafc; border-radius: 6px; }
+.daily-report-detail-grid span, .report-remarks span { display: block; color: #64748b; font-size: 12px; }
+.daily-report-detail-grid strong { display: block; margin-top: 4px; color: #172b4d; }
+.report-remarks { margin-top: 16px; padding-top: 14px; border-top: 1px solid #e5eaf1; }
+.report-remarks p { margin: 6px 0 0; color: #334155; white-space: pre-wrap; }
+@media (max-width: 700px) { .daily-report-summary { overflow-x: auto; } .daily-report-summary > * { min-width: 130px; } .daily-report-form-grid, .daily-report-detail-grid, .follow-up-form-row { grid-template-columns: 1fr; } .shared-import-list li { align-items: flex-start; flex-direction: column; } .transfer-list li { grid-template-columns: minmax(0, 1fr) auto; } .follow-up-history article > div { align-items: flex-start; flex-direction: column; } }

@@ -1,0 +1,14 @@
+import { useEffect, useState } from "react";
+import { Bell, MessageCircle, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { getNotifications, markNotificationRead, type AppNotification } from "../lib/notificationsApi";
+import "./notifications.css";
+
+export default function Notifications() {
+  const navigate = useNavigate(); const [items, setItems] = useState<AppNotification[]>([]); const [filter, setFilter] = useState("all"); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const load = async () => { setLoading(true); setError(""); try { const response = await getNotifications(); setItems(response.notifications); } catch { setError("Unable to load notifications."); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  const visible = items.filter((item) => filter === "all" || (filter === "unread" && !item.readAt) || (filter === "chat" && item.type === "chat_message"));
+  const open = async (item: AppNotification) => { if (!item.readAt) { await markNotificationRead(item.id).catch(() => undefined); setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, readAt: new Date().toISOString() } : entry)); } if (item.type === "chat_message") navigate(`/chat?conversation=${encodeURIComponent(item.metadata?.conversationId || item.entityId || "")}`); else if (item.metadata?.navigationPath) navigate(item.metadata.navigationPath); };
+  return <div className="module-page notifications-page"><div className="page-heading-row"><div><span className="page-kicker">SYSTEM</span><h2>Notifications</h2><p>Updates and messages for your workspace.</p></div><button className="secondary-button" onClick={() => void load()} disabled={loading}><RefreshCw size={16} /> Refresh</button></div>{error ? <div className="daily-report-error">{error}<button onClick={() => void load()}>Retry</button></div> : null}<div className="notification-tabs">{[["all", "All"], ["unread", "Unread"], ["chat", "Chat"]].map(([value, label]) => <button className={filter === value ? "active" : ""} key={value} onClick={() => setFilter(value)}>{label}</button>)}</div><section className="panel notification-list-page">{loading ? <div className="empty-state-panel"><strong>Loading notifications...</strong></div> : visible.length ? visible.map((item) => <button className={`notification-page-item ${item.readAt ? "read" : "unread"}`} key={item.id} onClick={() => void open(item)}><span className="notification-icon">{item.type === "chat_message" ? <MessageCircle size={17} /> : <Bell size={17} />}</span><span><strong>{item.title}</strong><small>{item.message}</small><em>{new Date(item.createdAt).toLocaleString()}</em></span></button>) : <div className="empty-state-panel"><Bell size={25} /><strong>No notifications found</strong><span>New messages and workspace updates will appear here.</span></div>}</section></div>;
+}

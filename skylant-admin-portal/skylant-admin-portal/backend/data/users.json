@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "id": "70c8be9a-1846-4e5d-98b5-04b0e9bd0945",
+      "full_name": "chetan nandurkar",
+      "email": "chetannandurkar99@gmail.com",
+      "role": "manager",
+      "is_active": true,
+      "created_at": "2026-09-22T08:17:53.791Z",
+      "passwordHash": "$2b$10$dv0in3KNA1NplncHd3EApuJEnlkBqdaqx4RE52iwlrfB2zO5Ke7P6"
+    },
+    {
+      "id": "7c226143-d5e5-4456-a1c2-295c63236ef8",
+      "full_name": "chetan nandurkar",
+      "email": "chetannandurkar71@gmail.com",
+      "role": "sales_executive",
+      "is_active": true,
+      "created_at": "2026-09-22T08:19:05.910Z",
+      "passwordHash": "$2b$10$qy1cfeczMpGj9K3io3uUxOkSuSADaB2P9ezcgXwfPJW0XBeaBEx5q"
+    }
+  ],
+  "leads": [
+    {
+      "id": "DEMO-1001",
+      "name": "Rahul Sharma",
+      "email": "rahul@example.com",
+      "status": "COUNSELLING",
+      "assigned_to": "7c226143-d5e5-4456-a1c2-295c63236ef8",
+      "source": "Website",
+      "college_id": "YCCE",
+      "next_follow_up": "2026-09-24",
+      "last_contact": "2026-09-22",
+      "created_at": "2026-09-22T08:30:00.000Z"
+    },
+    {
+      "id": "DEMO-1002",
+      "name": "Priya Patil",
+      "email": "priya@example.com",
+      "status": "FOLLOW-UP",
+      "assigned_to": "7c226143-d5e5-4456-a1c2-295c63236ef8",
+      "source": "Instagram",
+      "college_id": "Raisoni College",
+      "next_follow_up": "2026-09-23",
+      "last_contact": "2026-09-21",
+      "created_at": "2026-09-21T10:00:00.000Z"
+    }
+  ]
+}
