@@ -7,12 +7,17 @@ export type ManagerLead = {
   status?: string;
   assigned_to?: string | null;
   assignedTo?: { fullName?: string } | string | null;
+  sharedWebsiteLead?: boolean;
   next_follow_up?: string | null;
+  nextFollowUp?: string | null;
   followUpDate?: string | null;
   last_contact?: string | null;
+  lastContact?: string | null;
   lastContactedDate?: string | null;
   created_at?: string;
   source?: string;
+  mobile?: string;
+  collegeId?: string | null;
   college_id?: string | null;
   collegeName?: string | null;
   programName?: string | null;

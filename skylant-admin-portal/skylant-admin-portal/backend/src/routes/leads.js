@@ -11,18 +11,25 @@ const router = express.Router();
 router.use(authenticate);
 const managerOnly = authorize("admin", "manager");
 const visibleFilter = (user) => user.role === "sales_executive" ? { assignedTo: user._id } : {};
+const readableFilter = (user) => user.role === "sales_executive"
+  ? { $or: [{ assignedTo: user._id }, { source: "Website", assignedTo: null }] }
+  : {};
 const allowedStatuses = ["NEW", "CONTACTED", "INTERESTED", "FOLLOW-UP", "NOT INTERESTED", "CONVERTED", "CLOSED", "LOST"];
 function logActivity(req, action, recordId) {
   ActivityLog.create({ user: req.user._id, action, module: "leads", recordId: String(recordId), ip: req.ip, userAgent: req.get("user-agent") })
     .catch((error) => console.error("Unable to record lead activity", error));
 }
-const serialize = (lead) => ({
-  id: lead._id,
+const serialize = (lead, user) => ({
+  id: String(lead._id),
   name: lead.name,
   mobile: lead.phone,
   email: lead.email,
   collegeId: lead.college?._id || lead.college || null,
-  collegeName: lead.college?.collegeName || null,
+  collegeName: lead.collegeName || lead.college?.collegeName || null,
+  yearOfStudy: lead.yearOfStudy || null,
+  graduationYear: lead.graduationYear || null,
+  whatsapp: lead.whatsapp || null,
+  city: lead.city || null,
   programId: lead.program?._id || lead.program || null,
   programName: lead.program?.programName || lead.course || null,
   source: lead.source,
@@ -33,6 +40,7 @@ const serialize = (lead) => ({
   referralCode: lead.referralCode,
   assignedTo: lead.assignedTo?._id || lead.assignedTo || null,
   assignedToName: lead.assignedTo?.fullName || null,
+  sharedWebsiteLead: user?.role === "sales_executive" && lead.source === "Website" && !lead.assignedTo,
   status: lead.status,
   nextFollowUp: lead.followUpDate,
   lastContact: lead.lastContactedDate,
@@ -51,7 +59,7 @@ async function resolveId(value, Model, field) {
 router.get("/", async (req, res, next) => {
   try {
     const { page = 1, limit = 100, search, status, college, program, assignedExecutive, source, campaign, dateFrom, dateTo, sort = "-createdAt" } = req.query;
-    const filter = { ...visibleFilter(req.user) };
+    const filter = {};
     if (search) {
       const [collegeRecord, programRecord] = await Promise.all([resolveId(search, College, "collegeName"), resolveId(search, Program, "programName")]);
       filter.$or = [{ name: new RegExp(search, "i") }, { phone: new RegExp(search, "i") }, { email: new RegExp(search, "i") }, ...(collegeRecord ? [{ college: collegeRecord }] : []), ...(programRecord ? [{ program: programRecord }] : [])];
@@ -63,19 +71,26 @@ router.get("/", async (req, res, next) => {
     if (source) filter.source = source;
     if (campaign) filter.$or = [...(filter.$or || []), { campaign: campaign }, { campaignCode: new RegExp(campaign, "i") }];
     if (dateFrom || dateTo) filter.createdAt = { ...(dateFrom ? { $gte: new Date(dateFrom) } : {}), ...(dateTo ? { $lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}) };
-    const query = Lead.find(filter).populate("assignedTo", "fullName email").populate("college", "collegeName city").populate("program", "programName").populate("campaign", "name").sort(sort).skip((page - 1) * Number(limit)).limit(Number(limit));
-    const [leads, total, statusCounts] = await Promise.all([query, Lead.countDocuments(filter), Lead.aggregate([{ $match: filter }, { $group: { _id: "$status", count: { $sum: 1 } } }])]);
+    const scopedFilter = req.user.role === "sales_executive"
+      ? { $and: [readableFilter(req.user), filter] }
+      : filter;
+    const query = Lead.find(scopedFilter).populate("assignedTo", "fullName email").populate("college", "collegeName city").populate("program", "programName").populate("campaign", "name").sort(sort).skip((page - 1) * Number(limit)).limit(Number(limit));
+    const [leads, total, statusCounts] = await Promise.all([query, Lead.countDocuments(scopedFilter), Lead.aggregate([{ $match: scopedFilter }, { $group: { _id: "$status", count: { $sum: 1 } } }])]);
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); weekStart.setHours(0, 0, 0, 0);
-    const [newThisWeek, pendingFollowUps] = await Promise.all([Lead.countDocuments({ ...filter, createdAt: { $gte: weekStart } }), Lead.countDocuments({ ...filter, followUpDate: { $gte: new Date() }, status: "FOLLOW-UP" })]);
+    const [newThisWeek, pendingFollowUps] = await Promise.all([Lead.countDocuments({ $and: [scopedFilter, { createdAt: { $gte: weekStart } }] }), Lead.countDocuments({ $and: [scopedFilter, { followUpDate: { $gte: new Date() }, status: "FOLLOW-UP" }] })]);
     const counts = Object.fromEntries(statusCounts.map((item) => [item._id, item.count]));
-    res.json({ success: true, data: { data: leads.map(serialize), stats: { total, newThisWeek, converted: counts.CONVERTED || 0, conversionRate: total ? Math.round(((counts.CONVERTED || 0) / total) * 100) : 0, pendingFollowUps, statusCounts: counts }, pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) } } });
+    res.json({ success: true, data: { data: leads.map((lead) => serialize(lead, req.user)), stats: { total, newThisWeek, converted: counts.CONVERTED || 0, conversionRate: total ? Math.round(((counts.CONVERTED || 0) / total) * 100) : 0, pendingFollowUps, statusCounts: counts }, pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) } } });
   } catch (error) { next(error); }
 });
 
 router.get("/assigned/me", async (req, res, next) => {
   try {
-    const data = await Lead.find({ assignedTo: req.user._id }).sort("-createdAt");
-    res.json({ success: true, data });
+    const data = await Lead.find(readableFilter(req.user))
+      .populate("assignedTo", "fullName email")
+      .populate("college", "collegeName city")
+      .populate("program", "programName")
+      .sort("-createdAt");
+    res.json({ success: true, data: data.map((lead) => serialize(lead, req.user)) });
   } catch (error) { next(error); }
 });
 
@@ -122,7 +137,7 @@ router.post("/", async (req, res, next) => {
 });
 
 router.get("/:id", async (req, res, next) => {
-  try { const lead = await Lead.findOne({ _id: req.params.id, ...visibleFilter(req.user) }).populate("assignedTo", "fullName email").populate("college", "collegeName city").populate("program", "programName").populate("campaign", "name"); if (!lead) return res.status(404).json({ success: false, message: "Lead not found", error: "LEAD_NOT_FOUND" }); res.json({ success: true, data: serialize(lead) }); } catch (error) { next(error); }
+  try { const lead = await Lead.findOne({ _id: req.params.id, ...readableFilter(req.user) }).populate("assignedTo", "fullName email").populate("college", "collegeName city").populate("program", "programName").populate("campaign", "name"); if (!lead) return res.status(404).json({ success: false, message: "Lead not found", error: "LEAD_NOT_FOUND" }); res.json({ success: true, data: serialize(lead, req.user) }); } catch (error) { next(error); }
 });
 router.patch("/:id", async (req, res, next) => {
   try {

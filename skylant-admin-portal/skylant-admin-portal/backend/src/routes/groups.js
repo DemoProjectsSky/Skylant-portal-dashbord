@@ -9,7 +9,8 @@ const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 const managerOrSales = authorize("admin", "manager", "sales_executive");
-const toGroupResponse = (group, registrations) => ({ ...group.toObject(), registrations, progress: group.expectedStudents ? Math.min(Math.round((registrations / group.expectedStudents) * 100), 100) : 0, referralLink: `${process.env.CLIENT_URL || "http://localhost:5173"}/r/${group.referralCode}` });
+const portalBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim().replace(/\/$/, "");
+const toGroupResponse = (group, registrations) => ({ ...group.toObject(), registrations, progress: group.expectedStudents ? Math.min(Math.round((registrations / group.expectedStudents) * 100), 100) : 0, referralLink: `${portalBaseUrl}/r/${group.referralCode}` });
 
 router.get("/", authenticate, managerOrSales, async (req, res, next) => {
   try {

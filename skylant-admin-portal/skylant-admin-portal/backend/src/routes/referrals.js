@@ -6,7 +6,7 @@ const Registration = require("../models/Registration");
 const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
-const clientBaseUrl = (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+const clientBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim().replace(/\/$/, "");
 
 function makeReferralCode() {
   return crypto.randomBytes(5).toString("hex").slice(0, 8).toUpperCase();
@@ -23,9 +23,9 @@ async function buildReferralResponse(referral) {
     groupName: group?.groupName || null,
     collegeName: group?.collegeName || null,
     program: group?.course || group?.program || null,
-    ambassadorName: ambassador?.ambassadorId?.fullName || group?.ambassador?.name || null,
-    ambassadorEmail: ambassador?.ambassadorId?.email || group?.ambassador?.email || null,
-    ambassadorPhone: ambassador?.ambassadorId?.phone || group?.ambassador?.mobile || null,
+    ambassadorName: group?.ambassador?.name || ambassador?.ambassadorId?.fullName || null,
+    ambassadorEmail: group?.ambassador?.email || ambassador?.ambassadorId?.email || null,
+    ambassadorPhone: group?.ambassador?.mobile || ambassador?.ambassadorId?.phone || null,
     createdAt: referral.createdAt,
   };
 }
@@ -40,7 +40,7 @@ router.get("/", authorize("admin", "manager"), async (req, res, next) => {
       referralCode: referral.referralCode,
       referralUrl: referral.referralUrl,
       status: referral.status,
-      ambassadorName: referral.ambassadorId?.fullName || referral.groupId?.ambassador?.name || null,
+      ambassadorName: referral.groupId?.ambassador?.name || referral.ambassadorId?.fullName || null,
       groupName: referral.groupId?.groupName || null,
       collegeName: referral.groupId?.collegeName || null,
       program: referral.groupId?.course || referral.groupId?.program || null,
