@@ -1,4 +1,4 @@
-const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
+import { apiUrl } from "./apiConfig";
 
 export async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const token = window.localStorage.getItem("skylant-auth-token");

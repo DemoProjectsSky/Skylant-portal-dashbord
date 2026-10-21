@@ -1,6 +1,7 @@
 import type { PortalProfile, PortalRole } from "./roleApi";
+import { apiUrl } from "./apiConfig";
 
-export const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
+export { apiUrl };
 
 export type AuthResponse = { token: string; user: PortalProfile };
 

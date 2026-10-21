@@ -5,7 +5,9 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const connectDatabase = require("./config/db");
+const User = require("./models/User");
 const authRoutes = require("./routes/auth");
 const leadRoutes = require("./routes/leads");
 const resourceRoutes = require("./routes/resources");
@@ -23,10 +25,15 @@ const attendanceRoutes = require("./routes/attendance");
 const { notFound, errorHandler } = require("./middleware/errors");
 
 const app = express();
+const configuredPortalUrl = process.env.PORTAL_URL?.trim();
+const portalOrigin = configuredPortalUrl
+	? new URL(/^https?:\/\//i.test(configuredPortalUrl) ? configuredPortalUrl : `https://${configuredPortalUrl}`).origin
+	: null;
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174")
 	.split(",")
 	.map((value) => value.trim())
-	.filter(Boolean);
+	.filter(Boolean)
+	.concat(portalOrigin ? [portalOrigin] : []);
 const corsOptions = {
 	origin(origin, callback) {
 		if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
@@ -62,6 +69,36 @@ app.use(notFound);
 app.use(errorHandler);
 
 const port = Number(process.env.PORT || 5000);
-connectDatabase().then(() => app.listen(port, () => console.log(`Skylant API running on port ${port}`))).catch((error) => { console.error(error); process.exit(1); });
+
+async function ensureBootstrapAdmin() {
+	const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+	const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+
+	if (!email && !password && process.env.NODE_ENV !== "production") return;
+	if (!email || !password) throw new Error("BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD must both be configured");
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("BOOTSTRAP_ADMIN_EMAIL must be a valid email address");
+	if (password.length < 12) throw new Error("BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters");
+
+	const existingUser = await User.findOne({ email });
+	if (existingUser) {
+		if (existingUser.role !== "admin" || !existingUser.isActive) {
+			throw new Error("The bootstrap admin email already belongs to a non-admin or inactive user");
+		}
+		return;
+	}
+
+	await User.create({
+		fullName: process.env.BOOTSTRAP_ADMIN_NAME?.trim() || "Skylant Administrator",
+		email,
+		passwordHash: await bcrypt.hash(password, 12),
+		role: "admin",
+	});
+	console.log("Bootstrap administrator account is ready");
+}
+
+connectDatabase()
+	.then(ensureBootstrapAdmin)
+	.then(() => app.listen(port, () => console.log(`Skylant API running on port ${port}`)))
+	.catch((error) => { console.error(error); process.exit(1); });
 
 module.exports = app;

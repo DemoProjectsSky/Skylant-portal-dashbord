@@ -8,7 +8,8 @@ const Lead = require("../models/Lead");
 const { College, Program } = require("../models/Catalog");
 
 const router = express.Router();
-const portalBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim().replace(/\/$/, "");
+const configuredPortalBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim();
+const portalBaseUrl = (/^https?:\/\//i.test(configuredPortalBaseUrl) ? configuredPortalBaseUrl : `https://${configuredPortalBaseUrl}`).replace(/\/+$/, "");
 const websiteLeadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,

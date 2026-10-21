@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { apiUrl } from "./apiConfig";
 
 export type ManagerLead = {
   id: string;
@@ -69,8 +70,6 @@ export type ManagerOverview = {
   recentLeads: ManagerLead[];
   trend: Array<{ date: string; count: number }>;
 };
-
-const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const { data } = (await supabase?.auth.getSession()) ?? { data: { session: null } };
