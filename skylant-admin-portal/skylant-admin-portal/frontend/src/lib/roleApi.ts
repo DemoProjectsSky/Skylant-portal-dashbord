@@ -1,6 +1,5 @@
 import { supabase } from "./supabase";
 import type { ManagerLead } from "./managerApi";
-import { apiUrl } from "./apiConfig";
 
 export type PortalRole = "admin" | "manager" | "sales_executive";
 
@@ -17,6 +16,8 @@ export type SalesOverview = {
   summary: { totalLeads: number; statusCounts: Record<string, number> };
   leads: ManagerLead[];
 };
+
+const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
 
 export async function getCurrentProfile(): Promise<PortalProfile | null> {
   const token = window.localStorage.getItem("skylant-auth-token");
