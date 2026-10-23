@@ -1,6 +1,7 @@
 services:
+  # ---------- Backend API: https://skylant-crm-api.onrender.com ----------
   - type: web
-    name: skylant-portal-dashboard-api
+    name: skylant-crm-api
     runtime: node
     plan: free
     rootDir: skylant-admin-portal/skylant-admin-portal/backend
@@ -8,34 +9,37 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
       - key: NODE_ENV
         value: production
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: JWT_SECRET
         generateValue: true
-      - key: MONGODB_URI
+      - key: MONGODB_URI # secret - enter in Render dashboard
         sync: false
-      - key: BOOTSTRAP_ADMIN_EMAIL
+      - key: BOOTSTRAP_ADMIN_EMAIL # secret - enter in Render dashboard
         sync: false
-      - key: BOOTSTRAP_ADMIN_PASSWORD
+      - key: BOOTSTRAP_ADMIN_PASSWORD # secret - enter in Render dashboard (12+ chars)
         sync: false
-      - key: CLIENT_URL
-        value: https://www.skylanttech.com,https://skylanttech.com,https://skylant-portal-dashboard.onrender.com
-      - key: PORTAL_URL
-        value: https://skylant-portal-dashboard.onrender.com
+      - key: CLIENT_URL # CORS allow-list (frontend + public website)
+        value: https://skylant-portal-dashboard-1.onrender.com,https://www.skylanttech.com,https://skylanttech.com
+      - key: PORTAL_URL # used to build referral links: <PORTAL_URL>/r/<code>
+        value: https://skylant-portal-dashboard-1.onrender.com
+
+  # ---------- Frontend dashboard: https://skylant-portal-dashboard-1.onrender.com ----------
   - type: web
-    name: skylant-portal-dashboard
+    name: skylant-portal-dashboard-1
     runtime: static
     rootDir: skylant-admin-portal/skylant-admin-portal/frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: skylant-portal-dashboard-api
-          property: host
+        value: https://skylant-crm-api.onrender.com
     routes:
       - type: rewrite
         source: /*
