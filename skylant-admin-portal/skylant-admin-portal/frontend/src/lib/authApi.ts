@@ -1,6 +1,7 @@
 import type { PortalProfile, PortalRole } from "./roleApi";
+import { apiUrl } from "./apiConfig";
 
-export const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
+export { apiUrl };
 
 export type AuthResponse = { token: string; user: PortalProfile };
 
@@ -9,7 +10,7 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
   try {
     response = await fetch(`${apiUrl}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   } catch {
-    throw new Error(`Cannot reach backend at ${apiUrl}. Start the Express server and check its port.`);
+    throw new Error(`Cannot reach backend at ${apiUrl}. Check that the API is running (Render free instances can take ~1 minute to wake up) and that CORS allows this site.`);
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message ?? "Authentication request failed");

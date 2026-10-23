@@ -6,7 +6,7 @@ const Registration = require("../models/Registration");
 const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
-const clientBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim().replace(/\/$/, "");
+const { referralUrlFor } = require("../config/urls");
 
 function makeReferralCode() {
   return crypto.randomBytes(5).toString("hex").slice(0, 8).toUpperCase();
@@ -18,7 +18,7 @@ async function buildReferralResponse(referral) {
   return {
     _id: referral._id,
     referralCode: referral.referralCode,
-    referralUrl: referral.referralUrl,
+    referralUrl: referralUrlFor(referral.referralCode),
     status: referral.status,
     groupName: group?.groupName || null,
     collegeName: group?.collegeName || null,
@@ -38,7 +38,7 @@ router.get("/", authorize("admin", "manager"), async (req, res, next) => {
     res.json({ success: true, data: referrals.map((referral) => ({
       _id: referral._id,
       referralCode: referral.referralCode,
-      referralUrl: referral.referralUrl,
+      referralUrl: referralUrlFor(referral.referralCode),
       status: referral.status,
       ambassadorName: referral.groupId?.ambassador?.name || referral.ambassadorId?.fullName || null,
       groupName: referral.groupId?.groupName || null,
@@ -61,7 +61,7 @@ router.post("/", authorize("admin", "manager"), async (req, res, next) => {
     while (await Referral.exists({ referralCode }) && attempts < 10) { referralCode = makeReferralCode(); attempts += 1; }
     const referral = await Referral.create({
       referralCode,
-      referralUrl: `${clientBaseUrl}/r/${referralCode}`,
+      referralUrl: referralUrlFor(referralCode),
       ambassadorId: assignedAmbassadorId,
       groupId: group._id,
       collegeId: group.collegeId || null,

@@ -9,8 +9,8 @@ const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 const managerOrSales = authorize("admin", "manager", "sales_executive");
-const portalBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim().replace(/\/$/, "");
-const toGroupResponse = (group, registrations) => ({ ...group.toObject(), registrations, progress: group.expectedStudents ? Math.min(Math.round((registrations / group.expectedStudents) * 100), 100) : 0, referralLink: `${portalBaseUrl}/r/${group.referralCode}` });
+const { referralUrlFor } = require("../config/urls");
+const toGroupResponse = (group, registrations) => ({ ...group.toObject(), registrations, progress: group.expectedStudents ? Math.min(Math.round((registrations / group.expectedStudents) * 100), 100) : 0, referralLink: referralUrlFor(group.referralCode) });
 
 router.get("/", authenticate, managerOrSales, async (req, res, next) => {
   try {

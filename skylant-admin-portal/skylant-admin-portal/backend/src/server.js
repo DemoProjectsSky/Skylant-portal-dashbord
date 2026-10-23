@@ -23,17 +23,11 @@ const chatRoutes = require("./routes/chat");
 const importExportRoutes = require("./routes/importExportFiles");
 const attendanceRoutes = require("./routes/attendance");
 const { notFound, errorHandler } = require("./middleware/errors");
+const { allowedOrigins } = require("./config/urls");
 
 const app = express();
-const configuredPortalUrl = process.env.PORTAL_URL?.trim();
-const portalOrigin = configuredPortalUrl
-	? new URL(/^https?:\/\//i.test(configuredPortalUrl) ? configuredPortalUrl : `https://${configuredPortalUrl}`).origin
-	: null;
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174")
-	.split(",")
-	.map((value) => value.trim())
-	.filter(Boolean)
-	.concat(portalOrigin ? [portalOrigin] : []);
+// Render terminates TLS behind a proxy; without this, rate limiting sees every user as one IP.
+app.set("trust proxy", 1);
 const corsOptions = {
 	origin(origin, callback) {
 		if (!origin || allowedOrigins.includes(origin)) return callback(null, true);

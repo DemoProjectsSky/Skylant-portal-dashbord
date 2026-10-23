@@ -16,7 +16,7 @@ router.post("/register", async (req, res, next) => {
     const { name, email, password, role = "sales_executive", phone } = req.body;
     if (!name || !email || !password) return res.status(400).json({ success: false, message: "Name, email and password are required", error: "VALIDATION_ERROR" });
     if (password.length < 6) return res.status(400).json({ success: false, message: "Password must be at least 6 characters", error: "VALIDATION_ERROR" });
-    if (role !== "sales_executive") return res.status(403).json({ success: false, message: "Public registration is limited to sales executives. Manager accounts must be created by an administrator.", error: "ROLE_NOT_ALLOWED" });
+    if (!["manager", "sales_executive"].includes(role)) return res.status(403).json({ success: false, message: "Only manager or sales executive registration is allowed", error: "ROLE_NOT_ALLOWED" });
     if (await User.exists({ email: email.toLowerCase() })) return res.status(409).json({ success: false, message: "Email is already registered", error: "EMAIL_EXISTS" });
     const user = await User.create({ fullName: name, email, phone, role, passwordHash: await bcrypt.hash(password, 12) });
     res.status(201).json({ success: true, message: "Account created", data: { token: await startSession(user, req), user: publicUser(user) } });

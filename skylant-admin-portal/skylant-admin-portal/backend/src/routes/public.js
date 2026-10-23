@@ -8,8 +8,7 @@ const Lead = require("../models/Lead");
 const { College, Program } = require("../models/Catalog");
 
 const router = express.Router();
-const configuredPortalBaseUrl = (process.env.PORTAL_URL || process.env.CLIENT_URL?.split(",")[0] || "http://localhost:5173").trim();
-const portalBaseUrl = (/^https?:\/\//i.test(configuredPortalBaseUrl) ? configuredPortalBaseUrl : `https://${configuredPortalBaseUrl}`).replace(/\/+$/, "");
+const { referralUrlFor } = require("../config/urls");
 const websiteLeadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -92,7 +91,7 @@ router.get("/referrals/:code", async (req, res, next) => {
       const groupProgram = group.course || group.program || "Program";
       return res.json({ success: true, data: {
         referralCode: group.referralCode,
-        referralUrl: `${portalBaseUrl}/r/${group.referralCode}`,
+        referralUrl: referralUrlFor(group.referralCode),
         ambassador: group.ambassador ? {
           id: group.ambassadorId,
           fullName: group.ambassador.name,
@@ -111,7 +110,7 @@ router.get("/referrals/:code", async (req, res, next) => {
 
     res.json({ success: true, data: {
       referralCode: referral.referralCode,
-      referralUrl: referral.referralUrl,
+      referralUrl: referralUrlFor(referral.referralCode),
       ambassador: referral.groupId?.ambassador ? {
         id: referral.ambassadorId?._id,
         fullName: referral.groupId.ambassador.name,

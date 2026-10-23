@@ -1,4 +1,4 @@
-const apiUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
+import { apiUrl } from "./apiConfig";
 
 export async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const token = window.localStorage.getItem("skylant-auth-token");
@@ -7,7 +7,7 @@ export async function apiRequest<T>(path: string, options?: RequestInit): Promis
   try {
     response = await fetch(`${apiUrl}${path}`, { ...options, headers: { ...(!isFormData ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options?.headers ?? {}) } });
   } catch {
-    throw new Error(`Cannot reach backend at ${apiUrl}. Start the Express server and check its port.`);
+    throw new Error(`Cannot reach backend at ${apiUrl}. Check that the API is running (Render free instances can take ~1 minute to wake up) and that CORS allows this site.`);
   }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message ?? "API request failed");
