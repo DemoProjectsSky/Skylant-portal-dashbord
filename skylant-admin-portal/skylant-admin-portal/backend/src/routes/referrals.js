@@ -6,7 +6,7 @@ const Registration = require("../models/Registration");
 const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
-const { referralUrlFor } = require("../config/Urls");
+const { referralUrlFor } = require("../config/urls");
 
 function makeReferralCode() {
   return crypto.randomBytes(5).toString("hex").slice(0, 8).toUpperCase();
