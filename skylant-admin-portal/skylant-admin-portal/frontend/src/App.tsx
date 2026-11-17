@@ -8,6 +8,7 @@ import SkylantLogin from "./pages/login";
 import SalesDashboard from "./pages/SalesDashboard";
 import GroupsAmbassadors from "./pages/GroupsAmbassadors";
 import Notifications from "./pages/Notifications";
+import Workspace from "./pages/Workspace";
 import PublicReferralPage from "./pages/PublicReferralPage";
 import { getCurrentProfile, type PortalProfile, type PortalRole } from "./lib/roleApi";
 
@@ -26,7 +27,7 @@ function PortalRoute({ children, allowed }: { children: ReactNode; allowed: Port
         return;
       }
       if (!allowedKey.split("|").includes(profile.role)) {
-        navigate(profile.role === "sales_executive" ? "/sales-dashboard" : "/dashboard", { replace: true });
+        navigate(profile.role === "sales_executive" ? "/sales-dashboard" : profile.role === "other" ? "/workspace" : "/dashboard", { replace: true });
         return;
       }
       setProfile(profile);
@@ -43,12 +44,13 @@ function App() {
       <Route path="/login" element={<SkylantLogin />} />
       <Route path="/dashboard" element={<PortalRoute allowed={["admin", "manager"]}><Dashboard /></PortalRoute>} />
       <Route path="/sales-dashboard" element={<PortalRoute allowed={["sales_executive"]}><SalesDashboard /></PortalRoute>} />
-      <Route path="/notifications" element={<PortalRoute allowed={["admin", "manager", "sales_executive"]}><Notifications /></PortalRoute>} />
+      <Route path="/workspace" element={<PortalRoute allowed={["admin", "manager", "sales_executive", "other"]}><Workspace /></PortalRoute>} />
+      <Route path="/notifications" element={<PortalRoute allowed={["admin", "manager", "sales_executive", "other"]}><Notifications /></PortalRoute>} />
       <Route path="/groups-campus-ambassadors" element={<PortalRoute allowed={["sales_executive", "admin", "manager"]}><GroupsAmbassadors /></PortalRoute>} />
       <Route path="/r/:referralCode" element={<PublicReferralPage />} />
       <Route path="/leads" element={<Navigate to="/leads/all" replace />} />
       <Route path="/leads/:section" element={<PortalRoute allowed={["admin", "manager", "sales_executive"]}><Leads /></PortalRoute>} />
-      {modulePaths.map((path) => <Route key={path} path={path} element={<PortalRoute allowed={["admin", "manager", "sales_executive"]}><ModulePages path={path} /></PortalRoute>} />)}
+      {modulePaths.map((path) => <Route key={path} path={path} element={<PortalRoute allowed={path === "/daily-reports" || path === "/follow-ups" || path === "/chat" || path === "/settings" ? ["admin", "manager", "sales_executive", "other"] : ["admin", "manager", "sales_executive"]}><ModulePages path={path} /></PortalRoute>} />)}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

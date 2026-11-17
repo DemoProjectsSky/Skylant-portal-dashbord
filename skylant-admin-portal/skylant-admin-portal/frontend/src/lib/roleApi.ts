@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import type { ManagerLead } from "./managerApi";
 import { apiUrl } from "./apiConfig";
 
-export type PortalRole = "admin" | "manager" | "sales_executive";
+export type PortalRole = "admin" | "manager" | "sales_executive" | "other";
 
 export type PortalProfile = {
   id: string;

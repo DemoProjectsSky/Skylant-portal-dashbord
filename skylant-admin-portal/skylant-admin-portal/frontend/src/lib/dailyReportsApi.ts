@@ -14,6 +14,9 @@ export type DailyReport = {
   converted: number;
   whatsappConversations: number;
   remarks: string;
+  managerResponse: string;
+  reviewedByName?: string;
+  reviewedAt?: string | null;
   status: "pending" | "submitted" | "approved" | "rejected";
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -33,8 +36,11 @@ export const getDailyReports = (filters: DailyReportFilters = {}) => {
 
 export const getDailyReport = (id: string) => apiRequest<DailyReport>(`/api/daily-reports/${encodeURIComponent(id)}`);
 
-export const submitDailyReport = (payload: Omit<DailyReport, "id" | "salesExecutiveId" | "salesExecutiveName" | "email" | "status" | "createdAt" | "updatedAt">) =>
+export const submitDailyReport = (payload: Omit<DailyReport, "id" | "salesExecutiveId" | "salesExecutiveName" | "email" | "status" | "managerResponse" | "reviewedByName" | "reviewedAt" | "createdAt" | "updatedAt">) =>
   apiRequest<DailyReport>("/api/daily-reports", { method: "POST", body: JSON.stringify(payload) });
+
+export const reviewDailyReport = (id: string, status: "approved" | "rejected", response: string) =>
+  apiRequest<DailyReport>(`/api/daily-reports/${encodeURIComponent(id)}/review`, { method: "PATCH", body: JSON.stringify({ status, response }) });
 
 export type SalesReportPerformance = { status: "pending" | "submitted"; report: DailyReport | null; leadStats: { leadsAssigned: number; interested: number; converted: number; followUps: number } };
 export const getSalesReportPerformance = () => apiRequest<SalesReportPerformance>("/api/daily-reports/performance/today");

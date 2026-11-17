@@ -591,7 +591,7 @@
 .role-login-button span:nth-child(2) { display: grid; gap: 3px; }
 .role-login-button small { color: #66758a; font-size: 12px; }
 .role-arrow { font-size: 22px; margin-left: auto; }
-.role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 22px 0 18px; }
+.role-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 22px 0 18px; }
 .role-tabs button { align-items: center; background: #f6f8fb; border: 1px solid #dbe4ef; border-radius: 9px; color: #637187; cursor: pointer; display: flex; font-size: 13px; font-weight: 700; gap: 7px; justify-content: center; padding: 11px 8px; }
 .role-tabs button.active { background: #edf3ff; border-color: #2563eb; color: #173b7a; }
 .auth-mode-toggle { background: transparent; border: 0; color: #2563eb; cursor: pointer; display: block; font-size: 13px; margin: 18px auto 0; }

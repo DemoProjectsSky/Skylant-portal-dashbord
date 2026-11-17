@@ -11,6 +11,9 @@ const dailyReportSchema = new mongoose.Schema({
   converted: { type: Number, min: 0, default: 0 },
   whatsappConversations: { type: Number, min: 0, default: 0 },
   remarks: { type: String, trim: true, default: "" },
+  managerResponse: { type: String, trim: true, default: "" },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  reviewedAt: Date,
   status: { type: String, enum: ["submitted", "approved", "rejected"], default: "submitted" },
 }, { timestamps: true });
 

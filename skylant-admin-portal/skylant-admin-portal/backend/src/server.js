@@ -22,6 +22,7 @@ const dailyReportRoutes = require("./routes/dailyReports");
 const chatRoutes = require("./routes/chat");
 const importExportRoutes = require("./routes/importExportFiles");
 const attendanceRoutes = require("./routes/attendance");
+const meetingRoutes = require("./routes/meetings");
 const { notFound, errorHandler } = require("./middleware/errors");
 const { allowedOrigins } = require("./config/urls");
 
@@ -58,6 +59,7 @@ app.use("/api/daily-reports", dailyReportRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/files", importExportRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/meetings", meetingRoutes);
 app.use("/api", resourceRoutes);
 app.use(notFound);
 app.use(errorHandler);

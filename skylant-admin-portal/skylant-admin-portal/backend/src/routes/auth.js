@@ -16,7 +16,7 @@ router.post("/register", async (req, res, next) => {
     const { name, email, password, role = "sales_executive", phone } = req.body;
     if (!name || !email || !password) return res.status(400).json({ success: false, message: "Name, email and password are required", error: "VALIDATION_ERROR" });
     if (password.length < 6) return res.status(400).json({ success: false, message: "Password must be at least 6 characters", error: "VALIDATION_ERROR" });
-    if (!["manager", "sales_executive"].includes(role)) return res.status(403).json({ success: false, message: "Only manager or sales executive registration is allowed", error: "ROLE_NOT_ALLOWED" });
+    if (!["manager", "sales_executive", "other"].includes(role)) return res.status(403).json({ success: false, message: "This account type cannot be registered", error: "ROLE_NOT_ALLOWED" });
     if (await User.exists({ email: email.toLowerCase() })) return res.status(409).json({ success: false, message: "Email is already registered", error: "EMAIL_EXISTS" });
     const user = await User.create({ fullName: name, email, phone, role, passwordHash: await bcrypt.hash(password, 12) });
     res.status(201).json({ success: true, message: "Account created", data: { token: await startSession(user, req), user: publicUser(user) } });
@@ -27,7 +27,8 @@ router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase() }).select("+passwordHash");
-    if (!user || !user.isActive || !(await bcrypt.compare(password || "", user.passwordHash))) return res.status(401).json({ success: false, message: "Invalid email or password", error: "INVALID_CREDENTIALS" });
+    const roleMismatch = req.body.role && req.body.role !== user?.role && !(user?.role === "admin" && req.body.role === "manager");
+    if (!user || !user.isActive || roleMismatch || !(await bcrypt.compare(password || "", user.passwordHash))) return res.status(401).json({ success: false, message: "Invalid email or password", error: "INVALID_CREDENTIALS" });
     res.json({ success: true, message: "Login successful", data: { token: await startSession(user, req), user: publicUser(user) } });
   } catch (error) { next(error); }
 });

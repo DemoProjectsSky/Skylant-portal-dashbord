@@ -5,15 +5,21 @@ const Notification = require("../models/Notification");
 const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
-router.use(authenticate, authorize("admin", "manager", "sales_executive"));
+router.use(authenticate, authorize("admin", "manager", "sales_executive", "other"));
 const idOf = (value) => value.toString();
 const conversationId = (first, second) => [idOf(first), idOf(second)].sort().join(":");
 const preview = (value) => value.length > 90 ? `${value.slice(0, 87)}...` : value;
 const serializeMessage = (message) => ({ id: message._id, conversationId: message.conversationId, senderId: message.sender?._id || message.sender, senderName: message.sender?.fullName, receiverId: message.receiver?._id || message.receiver, content: message.content, isRead: Boolean(message.readAt), createdAt: message.createdAt });
+const canChatWith = (user, person) => user.role === "sales_executive"
+  ? ["admin", "manager"].includes(person.role)
+  : user.role === "other"
+    ? ["admin", "manager", "other"].includes(person.role)
+    : true;
 
 router.get("/people", async (req, res, next) => {
   try {
-    const people = await User.find({ _id: { $ne: req.user._id }, role: { $in: ["admin", "manager", "sales_executive"] }, isActive: true }).select("fullName email role").sort("fullName");
+    const roles = req.user.role === "sales_executive" ? ["admin", "manager"] : req.user.role === "other" ? ["admin", "manager", "other"] : ["admin", "manager", "sales_executive", "other"];
+    const people = await User.find({ _id: { $ne: req.user._id }, role: { $in: roles }, isActive: true }).select("fullName email role").sort("fullName");
     res.json({ success: true, data: people });
   } catch (error) { next(error); }
 });
@@ -23,19 +29,21 @@ router.get("/conversations", async (req, res, next) => {
     const messages = await Message.find({ $or: [{ sender: req.user._id }, { receiver: req.user._id }] }).populate("sender", "fullName email role").populate("receiver", "fullName email role").sort("-createdAt").lean();
     const conversations = new Map();
     messages.forEach((message) => {
-      if (conversations.has(message.conversationId)) return;
       const other = idOf(message.sender._id) === idOf(req.user._id) ? message.receiver : message.sender;
+      if (!canChatWith(req.user, other)) return;
+      if (conversations.has(message.conversationId)) return;
       conversations.set(message.conversationId, { conversationId: message.conversationId, person: { id: other._id, fullName: other.fullName, email: other.email, role: other.role }, lastMessage: serializeMessage(message), unreadCount: 0 });
     });
-    messages.forEach((message) => { if (idOf(message.receiver._id) === idOf(req.user._id) && !message.readAt) conversations.get(message.conversationId).unreadCount += 1; });
+    messages.forEach((message) => { if (conversations.has(message.conversationId) && idOf(message.receiver._id) === idOf(req.user._id) && !message.readAt) conversations.get(message.conversationId).unreadCount += 1; });
     res.json({ success: true, data: [...conversations.values()] });
   } catch (error) { next(error); }
 });
 
 router.get("/conversations/:userId/messages", async (req, res, next) => {
   try {
-    const person = await User.findOne({ _id: req.params.userId, role: { $in: ["admin", "manager", "sales_executive"] }, isActive: true }).select("fullName email role");
+    const person = await User.findOne({ _id: req.params.userId, role: { $in: ["admin", "manager", "sales_executive", "other"] }, isActive: true }).select("fullName email role");
     if (!person) return res.status(404).json({ success: false, message: "Chat participant not found" });
+    if (!canChatWith(req.user, person)) return res.status(403).json({ success: false, message: "Sales executives can chat with management, not other sales accounts" });
     const id = conversationId(req.user._id, person._id);
     const messages = await Message.find({ conversationId: id }).populate("sender", "fullName").sort("createdAt");
     res.json({ success: true, data: { conversationId: id, person, messages: messages.map(serializeMessage) } });
@@ -44,9 +52,10 @@ router.get("/conversations/:userId/messages", async (req, res, next) => {
 
 router.post("/conversations/:userId/messages", async (req, res, next) => {
   try {
-    const receiver = await User.findOne({ _id: req.params.userId, role: { $in: ["admin", "manager", "sales_executive"] }, isActive: true }).select("fullName email role");
+    const receiver = await User.findOne({ _id: req.params.userId, role: { $in: ["admin", "manager", "sales_executive", "other"] }, isActive: true }).select("fullName email role");
     const content = String(req.body.content || "").trim();
     if (!receiver) return res.status(404).json({ success: false, message: "Chat participant not found" });
+    if (!canChatWith(req.user, receiver)) return res.status(403).json({ success: false, message: "Sales executives can chat with management, not other sales accounts" });
     if (!content) return res.status(400).json({ success: false, message: "Message cannot be empty" });
     const id = conversationId(req.user._id, receiver._id);
     const message = await Message.create({ conversationId: id, sender: req.user._id, receiver: receiver._id, content });
@@ -59,6 +68,9 @@ router.post("/conversations/:userId/messages", async (req, res, next) => {
 
 router.patch("/conversations/:userId/read", async (req, res, next) => {
   try {
+    const person = await User.findOne({ _id: req.params.userId, role: { $in: ["admin", "manager", "sales_executive", "other"] }, isActive: true }).select("role");
+    if (!person) return res.status(404).json({ success: false, message: "Chat participant not found" });
+    if (!canChatWith(req.user, person)) return res.status(403).json({ success: false, message: "Sales executives can chat with management, not other sales accounts" });
     const id = conversationId(req.user._id, req.params.userId);
     await Message.updateMany({ conversationId: id, receiver: req.user._id, readAt: { $exists: false } }, { $set: { readAt: new Date() } });
     await Notification.updateMany({ recipient: req.user._id, type: "chat_message", entityType: "chat", entityId: id, readAt: { $exists: false } }, { $set: { readAt: new Date() } });

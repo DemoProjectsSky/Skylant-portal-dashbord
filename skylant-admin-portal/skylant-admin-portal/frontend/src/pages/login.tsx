@@ -1,6 +1,6 @@
 
 import { useState, type FormEvent } from "react";
-import { BriefcaseBusiness, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { BriefcaseBusiness, Eye, EyeOff, Lock, ShieldCheck, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { saveSession, signIn, signUp } from "../lib/authApi";
 import type { PortalRole } from "../lib/roleApi";
@@ -26,7 +26,7 @@ export default function SkylantLogin() {
     try {
       const response = mode === "signup" ? await signUp({ name, email, password, role }) : await signIn({ email, password, role });
       saveSession(response);
-      navigate(response.user.role === "sales_executive" ? "/sales-dashboard" : "/dashboard", { replace: true });
+      navigate(response.user.role === "sales_executive" ? "/sales-dashboard" : response.user.role === "other" ? "/workspace" : "/dashboard", { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to authenticate");
     } finally {
@@ -42,7 +42,7 @@ export default function SkylantLogin() {
       <div className="brand"><img src={skylantLogo} alt="Skylant Tech Solution" className="skylant-logo" /><div className="brand-text"><div className="brand-name">Skylant</div><div className="brand-subtitle">TECH SOLUTION</div></div></div>
       <h1 className="login-title">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
       <p className="login-subtitle">{mode === "signin" ? "Sign in to your saved workspace" : "Your account and work will be saved locally"}</p>
-      <div className="role-tabs"><button type="button" className={role === "manager" ? "active" : ""} onClick={() => setRole("manager")}><ShieldCheck size={17} /> Manager</button><button type="button" className={role === "sales_executive" ? "active" : ""} onClick={() => setRole("sales_executive")}><BriefcaseBusiness size={17} /> Sales Team</button></div>
+      <div className="role-tabs"><button type="button" className={role === "manager" ? "active" : ""} onClick={() => setRole("manager")}><ShieldCheck size={17} /> Manager</button><button type="button" className={role === "sales_executive" ? "active" : ""} onClick={() => setRole("sales_executive")}><BriefcaseBusiness size={17} /> Sales Team</button><button type="button" className={role === "other" ? "active" : ""} onClick={() => setRole("other")}><UserRound size={17} /> Others</button></div>
       <form onSubmit={submit} className="login-form">
         {mode === "signup" && <div className="form-group"><label htmlFor="name" className="field-label">Full name</label><input id="name" className="field-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Chetan Sharma" required /></div>}
         <div className="form-group"><label htmlFor="email" className="field-label">Email</label><input id="email" type="text" autoComplete="username" className="field-input" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter any email" required /></div>

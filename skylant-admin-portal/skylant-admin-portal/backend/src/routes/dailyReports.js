@@ -2,10 +2,11 @@ const express = require("express");
 const DailyReport = require("../models/DailyReport");
 const User = require("../models/User");
 const Lead = require("../models/Lead");
+const Notification = require("../models/Notification");
 const { authenticate, authorize } = require("../middleware/auth");
 
 const router = express.Router();
-router.use(authenticate, authorize("admin", "manager", "sales_executive"));
+router.use(authenticate, authorize("admin", "manager", "sales_executive", "other"));
 
 const today = () => new Date().toISOString().slice(0, 10);
 const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -26,6 +27,9 @@ function serialize(report, user, status = report?.status || "pending") {
     converted: report?.converted ?? 0,
     whatsappConversations: report?.whatsappConversations ?? 0,
     remarks: report?.remarks || "",
+    managerResponse: report?.managerResponse || "",
+    reviewedByName: report?.reviewedBy?.fullName || "",
+    reviewedAt: report?.reviewedAt || null,
     status,
     createdAt: report?.createdAt || null,
     updatedAt: report?.updatedAt || null,
@@ -62,10 +66,10 @@ function applyFilters(reports, query) {
 
 router.get("/", async (req, res, next) => {
   try {
-    const isSales = req.user.role === "sales_executive";
-    const users = isSales
-      ? [req.user]
-      : await User.find({ role: "sales_executive", isActive: true }).select("fullName email isActive").sort("fullName");
+    const isManager = ["admin", "manager"].includes(req.user.role);
+    const users = isManager
+      ? await User.find({ role: { $in: ["sales_executive", "other"] }, isActive: true }).select("fullName email isActive").sort("fullName")
+      : [req.user];
     const userIds = users.map((user) => user._id);
     const query = { salesExecutiveId: { $in: userIds } };
     if (req.query.date && validDate(req.query.date)) query.date = req.query.date;
@@ -92,7 +96,7 @@ router.get("/", async (req, res, next) => {
 
 router.get("/performance/today", async (req, res, next) => {
   try {
-    if (req.user.role !== "sales_executive") return res.status(403).json({ success: false, message: "Sales executive access required" });
+    if (!["sales_executive", "other"].includes(req.user.role)) return res.status(403).json({ success: false, message: "Team member access required" });
     const date = today();
     const report = await DailyReport.findOne({ salesExecutiveId: req.user._id, date }).lean();
     const leadStats = await Lead.aggregate([
@@ -105,15 +109,15 @@ router.get("/performance/today", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const report = await DailyReport.findById(req.params.id).populate("salesExecutiveId", "fullName email role");
-    if (!report || (req.user.role === "sales_executive" && report.salesExecutiveId._id.toString() !== req.user._id.toString())) return res.status(404).json({ success: false, message: "Daily report not found" });
+    const report = await DailyReport.findById(req.params.id).populate("salesExecutiveId", "fullName email role").populate("reviewedBy", "fullName");
+    if (!report || (!["admin", "manager"].includes(req.user.role) && report.salesExecutiveId._id.toString() !== req.user._id.toString())) return res.status(404).json({ success: false, message: "Daily report not found" });
     res.json({ success: true, data: serialize(report, report.salesExecutiveId, report.status) });
   } catch (error) { next(error); }
 });
 
 router.post("/", async (req, res, next) => {
   try {
-    if (req.user.role !== "sales_executive") return res.status(403).json({ success: false, message: "Only sales executives can submit daily reports" });
+    if (!["sales_executive", "other"].includes(req.user.role)) return res.status(403).json({ success: false, message: "Only team members can submit daily reports" });
     const date = req.body.date || today();
     if (!validDate(date)) return res.status(400).json({ success: false, message: "Date must use YYYY-MM-DD format" });
     const fields = ["leadsAssigned", "callsMade", "connected", "interested", "followUps", "converted", "whatsappConversations"];
@@ -126,7 +130,27 @@ router.post("/", async (req, res, next) => {
     const existing = await DailyReport.findOne({ salesExecutiveId: req.user._id, date });
     if (existing) return res.status(409).json({ success: false, message: "A report for this date has already been submitted" });
     const report = await DailyReport.create({ ...values, date, remarks: String(req.body.remarks || "").trim(), salesExecutiveId: req.user._id, status: "submitted" });
+    const managers = await User.find({ role: { $in: ["admin", "manager"] }, isActive: true }).select("_id");
+    if (managers.length) await Notification.insertMany(managers.map((manager) => ({ recipient: manager._id, sender: req.user._id, type: "daily_report", title: "Daily work update received", message: `${req.user.fullName} submitted a daily update for ${date}.`, entityType: "daily_report", entityId: String(report._id), metadata: { navigationPath: "/daily-reports" } })));
     res.status(201).json({ success: true, message: "Daily report submitted", data: serialize(report, req.user, report.status) });
+  } catch (error) { next(error); }
+});
+
+router.patch("/:id/review", authorize("admin", "manager"), async (req, res, next) => {
+  try {
+    const { status, response } = req.body;
+    const managerResponse = String(response || "").trim();
+    if (!["approved", "rejected"].includes(status) || !managerResponse) return res.status(400).json({ success: false, message: "Choose a review status and enter a response", error: "VALIDATION_ERROR" });
+    const report = await DailyReport.findById(req.params.id);
+    if (!report) return res.status(404).json({ success: false, message: "Daily report not found", error: "REPORT_NOT_FOUND" });
+    report.status = status;
+    report.managerResponse = managerResponse;
+    report.reviewedBy = req.user._id;
+    report.reviewedAt = new Date();
+    await report.save();
+    await Notification.create({ recipient: report.salesExecutiveId, sender: req.user._id, type: "daily_report_review", title: "Your daily update has a response", message: managerResponse, entityType: "daily_report", entityId: String(report._id), metadata: { navigationPath: "/daily-reports" } });
+    const user = await User.findById(report.salesExecutiveId).select("fullName email");
+    res.json({ success: true, message: "Response sent to the sales executive", data: serialize(report, user, report.status) });
   } catch (error) { next(error); }
 });
 

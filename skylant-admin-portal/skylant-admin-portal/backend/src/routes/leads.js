@@ -10,10 +10,11 @@ const { authenticate, authorize } = require("../middleware/auth");
 const router = express.Router();
 router.use(authenticate);
 const managerOnly = authorize("admin", "manager");
-const visibleFilter = (user) => user.role === "sales_executive" ? { assignedTo: user._id } : {};
+const isTeamMember = (user) => ["sales_executive", "other"].includes(user.role);
+const visibleFilter = (user) => isTeamMember(user) ? { assignedTo: user._id } : {};
 const readableFilter = (user) => user.role === "sales_executive"
   ? { $or: [{ assignedTo: user._id }, { source: "Website", assignedTo: null }] }
-  : {};
+  : user.role === "other" ? { assignedTo: user._id } : {};
 const allowedStatuses = ["NEW", "CONTACTED", "INTERESTED", "FOLLOW-UP", "NOT INTERESTED", "CONVERTED", "CLOSED", "LOST"];
 function logActivity(req, action, recordId) {
   ActivityLog.create({ user: req.user._id, action, module: "leads", recordId: String(recordId), ip: req.ip, userAgent: req.get("user-agent") })
@@ -71,7 +72,7 @@ router.get("/", async (req, res, next) => {
     if (source) filter.source = source;
     if (campaign) filter.$or = [...(filter.$or || []), { campaign: campaign }, { campaignCode: new RegExp(campaign, "i") }];
     if (dateFrom || dateTo) filter.createdAt = { ...(dateFrom ? { $gte: new Date(dateFrom) } : {}), ...(dateTo ? { $lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}) };
-    const scopedFilter = req.user.role === "sales_executive"
+    const scopedFilter = isTeamMember(req.user)
       ? { $and: [readableFilter(req.user), filter] }
       : filter;
     const query = Lead.find(scopedFilter).populate("assignedTo", "fullName email").populate("college", "collegeName city").populate("program", "programName").populate("campaign", "name").sort(sort).skip((page - 1) * Number(limit)).limit(Number(limit));
@@ -96,7 +97,7 @@ router.get("/assigned/me", async (req, res, next) => {
 
 router.get("/follow-ups", async (req, res, next) => {
   try {
-    const filter = req.user.role === "sales_executive" ? { salesExecutive: req.user._id } : {};
+    const filter = isTeamMember(req.user) ? { salesExecutive: req.user._id } : {};
     const data = await FollowUp.find(filter)
       .populate({ path: "lead", select: "name phone college course program status followUpDate assignedTo", populate: [{ path: "college", select: "collegeName" }, { path: "program", select: "programName" }, { path: "assignedTo", select: "fullName" }] })
       .populate("salesExecutive", "fullName email")
@@ -120,6 +121,7 @@ router.get("/follow-ups", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
+    if (req.user.role === "other") return res.status(403).json({ success: false, message: "Other accounts cannot create leads", error: "FORBIDDEN" });
     const { name, phone, whatsapp, email } = req.body;
     if (!name?.trim() || !/^\+?[0-9\s()-]{7,20}$/.test(String(phone || ""))) return res.status(400).json({ success: false, message: "Name and a valid mobile number are required", error: "VALIDATION_ERROR" });
     if (email && !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ success: false, message: "Please enter a valid email address", error: "VALIDATION_ERROR" });
@@ -141,7 +143,7 @@ router.get("/:id", async (req, res, next) => {
 });
 router.patch("/:id", async (req, res, next) => {
   try {
-    const allowed = req.user.role === "sales_executive" ? ["status", "followUpDate", "lastContactedDate", "notes"] : ["assignedTo", "status", "followUpDate", "lastContactedDate", "notes", "source", "campaign", "campaignCode"];
+    const allowed = isTeamMember(req.user) ? ["status", "followUpDate", "lastContactedDate", "notes"] : ["assignedTo", "status", "followUpDate", "lastContactedDate", "notes", "source", "campaign", "campaignCode"];
     const requestUpdates = { ...req.body };
     if (requestUpdates.next_follow_up !== undefined && requestUpdates.followUpDate === undefined) requestUpdates.followUpDate = requestUpdates.next_follow_up;
     if (requestUpdates.last_contact !== undefined && requestUpdates.lastContactedDate === undefined) requestUpdates.lastContactedDate = requestUpdates.last_contact;
@@ -155,7 +157,7 @@ router.patch("/:id", async (req, res, next) => {
 router.delete("/:id", managerOnly, async (req, res, next) => { try { const lead = await Lead.findByIdAndDelete(req.params.id); if (!lead) return res.status(404).json({ success: false, message: "Lead not found", error: "LEAD_NOT_FOUND" }); logActivity(req, "deleted", lead._id); res.json({ success: true, message: "Lead deleted successfully" }); } catch (error) { next(error); } });
 
 router.post("/:leadId/followups", async (req, res, next) => { try { const lead = await Lead.findOne({ _id: req.params.leadId, ...visibleFilter(req.user) }); if (!lead) return res.status(404).json({ success: false, message: "Lead not found", error: "LEAD_NOT_FOUND" }); const { date, notes, outcome, nextFollowUp } = req.body ?? {}; if (!String(notes || "").trim()) return res.status(400).json({ success: false, message: "Follow-up notes are required", error: "VALIDATION_ERROR" }); const followUp = await FollowUp.create({ lead: lead._id, salesExecutive: req.user._id, date: date ? new Date(date) : new Date(), notes: String(notes).trim(), outcome: String(outcome || "").trim(), ...(nextFollowUp ? { nextFollowUp: new Date(nextFollowUp) } : {}) }); await Lead.findByIdAndUpdate(lead._id, { ...(nextFollowUp ? { followUpDate: new Date(nextFollowUp) } : {}), status: "FOLLOW-UP" }); logActivity(req, "added follow-up notes", lead._id); res.status(201).json({ success: true, message: "Follow-up notes saved", data: followUp }); } catch (error) { next(error); } });
-router.get("/:leadId/followups", async (req, res, next) => { try { const data = await FollowUp.find({ lead: req.params.leadId, ...(req.user.role === "sales_executive" ? { salesExecutive: req.user._id } : {}) }).sort("-date"); res.json({ success: true, data }); } catch (error) { next(error); } });
+router.get("/:leadId/followups", async (req, res, next) => { try { const data = await FollowUp.find({ lead: req.params.leadId, ...(isTeamMember(req.user) ? { salesExecutive: req.user._id } : {}) }).sort("-date"); res.json({ success: true, data }); } catch (error) { next(error); } });
 router.post("/:id/convert", managerOnly, async (req, res, next) => { try { const lead = await Lead.findById(req.params.id); if (!lead) return res.status(404).json({ success: false, message: "Lead not found", error: "LEAD_NOT_FOUND" }); const student = await Student.create({ ...req.body, fullName: req.body.fullName || lead.name, email: req.body.email || lead.email, phone: req.body.phone || lead.phone, convertedFromLead: lead._id, assignedCounselor: lead.assignedTo }); lead.status = "CONVERTED"; await lead.save(); res.status(201).json({ success: true, message: "Lead converted to student", data: student }); } catch (error) { next(error); } });
 
 module.exports = router;
